@@ -1,0 +1,31 @@
+syntax = "proto3";
+package workers;
+
+option go_package = "lezhnev74.worker";
+
+import "google/protobuf/struct.proto";
+
+message Task {
+  string id = 1; // provided by the client
+  string type = 2; // example: "annual_report_calculation"
+  google.protobuf.Struct payload = 3; // any specific payload to perform the task
+}
+
+message TasksBatch {
+  repeated Task Tasks = 1;
+}
+
+enum Result {
+  SUCCESS = 0;
+  RESCHEDULE = 1; // task must be tried again later
+  FAILURE = 2;
+}
+
+message TaskResult {
+  string task_id = 1; // the same as in the task itself
+  Result result_type = 2;
+  int32 timeout = 3; // only for rescheduling results
+  // any result that must be passed back (including errors)
+  // meant for SUCCESS or FAILURE
+  google.protobuf.Struct payload = 4;
+}
