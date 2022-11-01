@@ -20,7 +20,7 @@ func TestFullCycle(t *testing.T) {
 	}
 
 	for _, w := range workers {
-		t.Run("Full Cycle", func(t *testing.T) {
+		t.Run("Full Life Cycle", func(t *testing.T) {
 			// Initially the worker is ready
 			require.Equal(t, WORKER_READY, w.GetState())
 
@@ -42,6 +42,15 @@ func TestFullCycle(t *testing.T) {
 
 			// After it returns all the results it becomes READY again
 			require.Equal(t, WORKER_READY, w.GetState())
+
+			// We can kill the worker to reset resources, after calling this method the worker will finish its work
+			// and no longer must be used
+			w.Kill()
+			require.Equal(t, WORKER_KILLED, w.GetState())
+
+			// Any further calls must return an error
+			_, err = w.AcceptBatch(tasksBatch)
+			require.Error(t, err, ERROR_KILLED)
 		})
 	}
 }

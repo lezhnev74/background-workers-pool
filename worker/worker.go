@@ -3,10 +3,12 @@ package worker
 import "errors"
 
 const (
-	WORKER_READY = iota // ready to accept a batch of tasks
-	WORKER_BUSY         // working on the tasks, expect results asap
+	WORKER_READY  = iota // ready to accept a batch of tasks
+	WORKER_BUSY          // working on the tasks, expect results asap
+	WORKER_KILLED        // worker must be GCed
 
-	ERROR_BUSY = "worker is busy"
+	ERROR_BUSY   = "worker is busy"
+	ERROR_KILLED = "worker is killed"
 )
 
 // Worker is an abstraction on top of actual worker implementation (a dedicated process on this or foreign host)
@@ -15,6 +17,9 @@ type Worker interface {
 	// AcceptBatch should be nonblocking, it must send data to the worker and return instantly
 	// the order or results should not be assumed
 	AcceptBatch(batch []Task) (<-chan TaskResult, error)
+	// Kill should free any used resources, no further call should be performed
+	// the worker itself will be GC-ed
+	Kill()
 }
 
 // WorkerBase is a process that handles tasks
@@ -37,6 +42,9 @@ func (w *GoWorker) AcceptBatch(batch []Task) (<-chan TaskResult, error) {
 	if w.state == WORKER_BUSY {
 		return nil, errors.New(ERROR_BUSY)
 	}
+	if w.state == WORKER_KILLED {
+		return nil, errors.New(ERROR_KILLED)
+	}
 
 	w.state = WORKER_BUSY
 	results := make(chan TaskResult)
@@ -50,6 +58,10 @@ func (w *GoWorker) AcceptBatch(batch []Task) (<-chan TaskResult, error) {
 		w.state = WORKER_READY
 	}()
 	return results, nil
+}
+
+func (w *GoWorker) Kill() {
+	w.state = WORKER_KILLED
 }
 
 func MakeGoroutineWorker(h GoWorkerFunc) *GoWorker {
