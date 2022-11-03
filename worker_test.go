@@ -1,4 +1,4 @@
-package worker
+package ipc
 
 import (
 	"github.com/stretchr/testify/require"
@@ -56,7 +56,7 @@ func TestFullCycle(t *testing.T) {
 }
 
 // SuccessHandler always returns successful results
-func SuccessHandler(tasks []Task) <-chan TaskResult {
+func SuccessHandler(tasks []*Task) <-chan TaskResult {
 	results := make(chan TaskResult)
 	go func() {
 		for _, t := range tasks {
@@ -70,8 +70,8 @@ func SuccessHandler(tasks []Task) <-chan TaskResult {
 	return results
 }
 
-var tasksBatch = []Task{
-	{"1"},
-	{"2"},
-	{"3"},
+var tasksBatch = []*Task{
+	MakeTask("big_task", nil),
+	MakeTask("big_task", nil),
+	MakeTask("big_task", nil),
 }

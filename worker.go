@@ -1,4 +1,4 @@
-package worker
+package ipc
 
 import "errors"
 
@@ -16,7 +16,7 @@ type Worker interface {
 	GetState() int
 	// AcceptBatch should be nonblocking, it must send data to the worker and return instantly
 	// the order or results should not be assumed
-	AcceptBatch(batch []Task) (<-chan TaskResult, error)
+	AcceptBatch(batch []*Task) (<-chan TaskResult, error)
 	// Kill should free any used resources, no further call should be performed
 	// the worker itself will be GC-ed
 	Kill()
@@ -29,7 +29,7 @@ type WorkerBase struct {
 
 func (w *WorkerBase) GetState() int { return w.state }
 
-type GoWorkerFunc func(tasks []Task) <-chan TaskResult
+type GoWorkerFunc func(tasks []*Task) <-chan TaskResult
 
 // GoWorker is a worker that uses a go routine to perform its work
 // meant for tests only, real workers start separate OS processes
@@ -38,7 +38,7 @@ type GoWorker struct {
 	handleBatch GoWorkerFunc
 }
 
-func (w *GoWorker) AcceptBatch(batch []Task) (<-chan TaskResult, error) {
+func (w *GoWorker) AcceptBatch(batch []*Task) (<-chan TaskResult, error) {
 	if w.state == WORKER_BUSY {
 		return nil, errors.New(ERROR_BUSY)
 	}
